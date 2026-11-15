@@ -2,3 +2,21 @@
 __pycache__/
 *.pyc
 .claude/settings.local.json
+
+# Local environments
+.venv/
+.ipynb_checkpoints/
+
+# Course handout
+a4.pdf
+
+# Logs (local runs and SLURM job output)
+*.log
+*.out
+*.err
+logs/
+
+# Model checkpoints (too large for git)
+part1/out/
+part1/out_augmented/
+part2/checkpoints/
