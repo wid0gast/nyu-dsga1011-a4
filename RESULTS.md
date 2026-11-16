@@ -16,7 +16,7 @@ _Last updated: 2026-11-16 04:50 UTC_
 | Q5/Q6 T5 runs, lr 1e-3 and 3e-4 | Done |
 | Q6 T5 run, lr 1e-4 | Done |
 | Q7 test files | Done (lr 3e-4, final) |
-| Extra credit (T5 from scratch) | **Running** (restarted 05:00 UTC with 50 max epochs, because the GPU is shared with two other jobs and 80 would not finish before the Slurm job ends at ~10:17); live per-epoch table in `part2/analysis/scratch_progress.md` (auto-pushed every 10 min) |
+| Extra credit (T5 from scratch) | **Running** (attempt 3, started 05:37 UTC: lr 3e-4, 50 epochs, early stopping off); live per-epoch table in `part2/analysis/scratch_progress.md` (auto-pushed every 10 min) |
 
 ## Environment
 
@@ -322,6 +322,18 @@ How the categories were assigned (heuristics in `error_analysis.py`): "wrong lit
 The lr 3e-4 run was killed while it was computing the test records, because the first Slurm job ended. The `.pkl` was rebuilt from the saved `.sql` with `utils.compute_records`. The generated SQL itself is from the run.
 
 ---
+
+## Extra credit: T5-small from scratch (in progress)
+
+Same code, run without `--finetune`: `initialize_model` builds `T5ForConditionalGeneration(T5Config.from_pretrained('google-t5/t5-small'))`, so the architecture is identical but every weight is random. Same tokenizer and data processing as the fine-tuned model.
+
+| Attempt | Settings | Outcome |
+|---|---|---|
+| 1 | lr 1e-3, 80 epochs, patience 10, 2 warmup epochs | Stopped by hand after 2 epochs: with the GPU shared with two other jobs (~4–5 min/epoch), 80 epochs would not finish before the Slurm job ends. Log: `part2/logs/aborted/scr_ec_80ep_aborted.log` |
+| 2 | lr 1e-3, 50 epochs, patience 10, 2 warmup epochs | **Diverged.** Train loss went 2.38 → 0.61 (epoch 1), then *rose* to 1.0–1.5 once warmup reached the 1e-3 peak (epochs 2–10). Dev loss 0.61 → 1.05–1.37. 100% of dev outputs were invalid SQL (degenerate repetition such as `date_day_day_day_…`), Record F1 stuck at 11.80 (the floor from gold queries with empty results). Early stopping ended it after epoch 10 because F1 never improved. Log: `part2/logs/aborted/scr_ec_lr1e-3_diverged.log` |
+| 3 | lr 3e-4, 50 epochs, patience 50 (effectively off), 2 warmup epochs, cosine | **Running** |
+
+Lessons so far: (1) without pretrained weights and without gradient clipping, 1e-3 is unstable for t5-small; (2) F1-based early stopping is a bad fit from scratch, because F1 stays at the floor until the model starts producing valid SQL, so patience must be long or off.
 
 ## Submission checklist
 
