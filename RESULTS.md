@@ -1,9 +1,9 @@
 # A4 results log
 
 Raw results, settings and observations from running the assignment code, collected for the writeup.
-Numbers are copied from the run logs (`part1/logs/`, `part2/logs/`). Items marked **PENDING** are still running.
+Numbers are copied from the run logs (`part1/logs/`, `part2/logs/`). All runs are finished. The only number still missing is the test score from the Gradescope leaderboard.
 
-_Last updated: 2026-11-16 03:40 UTC_
+_Last updated: 2026-11-16 04:50 UTC_
 
 ## Status
 
@@ -14,8 +14,8 @@ _Last updated: 2026-11-16 03:40 UTC_
 | Q3 augmented training + 2 evals | Done |
 | Q4 data statistics | Done |
 | Q5/Q6 T5 runs, lr 1e-3 and 3e-4 | Done |
-| Q6 T5 run, lr 1e-4 | **PENDING** |
-| Q7 test files | Done from the current best model (lr 3e-4); may change if lr 1e-4 does better on dev |
+| Q6 T5 run, lr 1e-4 | Done |
+| Q7 test files | Done (lr 3e-4, final) |
 | Extra credit (T5 from scratch) | Not run |
 
 ## Environment
@@ -156,7 +156,7 @@ Test set: 432 examples (`test.nl` has no trailing newline, so `wc -l` shows 431)
 
 Why the counts don't change: the T5 SentencePiece vocabulary has no `<` piece, so `<` became a single `<unk>` (id 2). `LESS` is also a single token, so lengths and vocabulary counts stay the same, but the model can now output a real token that is turned back into `<` after decoding.
 
-## Q5. Fine-tuning details (best model so far: lr 3e-4)
+## Q5. Fine-tuning details (best model: lr 3e-4)
 
 | Design choice | Description |
 |---|---|
@@ -183,13 +183,21 @@ Best checkpoint: `part2/checkpoints/ft_experiments/lr3e-4/best` (git-ignored; th
 | System | Query EM | Record EM | Record F1 | SQL error rate |
 |---|---|---|---|---|
 | **Dev results** | | | | |
-| T5 fine-tuned, lr 1e-3 (best = epoch 7) | 63.52 | 71.03 | 72.71 | 19.31% |
-| **T5 fine-tuned, lr 3e-4 (best = epoch 12), full model** | **59.87** | **73.82** | **77.79** | 10.94% |
-| T5 fine-tuned, lr 1e-4 | PENDING | PENDING | PENDING | PENDING |
+| T5 fine-tuned, lr 1e-4 (best = epoch 16) | 34.98 | 52.15 | 61.76 | 16.95% |
+| T5 fine-tuned, lr 1e-3 (best = epoch 7) | 63.52 | 75.97 | 77.93 | 12.88% |
+| **T5 fine-tuned, lr 3e-4 (best = epoch 12), full model** | **59.87** | **75.54** | **79.61** | 9.01% |
 | **Test results** | | | | |
 | T5 fine-tuning (lr 3e-4) | from Gradescope leaderboard | | from Gradescope | |
 
-The dev numbers are from reloading the best checkpoint after training (the "Dev set results" line in the log).
+**Which dev numbers to use:** the table above is a *clean re-score*. The saved dev SQL of each best checkpoint (`results/t5_ft_lr*_dev.sql`) was executed again on an otherwise idle machine (records in `part2/analysis/rescore/`). The predicted SQL is identical, so SQL EM doesn't change; only the record-based metrics move, because fewer queries hit the evaluator's timeout:
+
+| lr | Record F1 in training log (shared machine) | Clean re-score | Timeouts (training log → clean) |
+|---|---|---|---|
+| 1e-3 | 72.71 | 77.93 | 36 → 3 |
+| 3e-4 | 77.79 | 79.61 | 11 → 2 |
+| 1e-4 | 61.76 | 61.76 | 0 → 0 |
+
+lr 3e-4 is best either way. The submitted test files, the checkpoint, and the error analysis below are all from this model. The error analysis (Table 5) uses the records saved during training, which include 11 timeouts.
 
 ### Ablation: learning rate (everything else as in Q5)
 
@@ -238,13 +246,48 @@ lr 1e-3 stopped early after epoch 12 (best F1 at epoch 7, then 5 epochs without 
 
 #### lr = 1e-4
 
-PENDING.
+Ran all 20 epochs (it kept improving slowly, so early stopping never triggered). Best = epoch 16.
+
+| Epoch | Train loss | Dev loss | Record F1 | Record EM | SQL EM | SQL error rate |
+|---|---|---|---|---|---|---|
+| 0 | 3.2266 | 0.6853 | 0.1180 | 0.1180 | 0.0000 | 100.00% |
+| 1 | 0.6331 | 0.2848 | 0.1653 | 0.1567 | 0.0000 | 74.46% |
+| 2 | 0.3379 | 0.1815 | 0.2921 | 0.2146 | 0.1245 | 40.13% |
+| 3 | 0.2393 | 0.1349 | 0.2836 | 0.2382 | 0.1524 | 38.20% |
+| 4 | 0.1875 | 0.1120 | 0.3851 | 0.3219 | 0.1974 | 27.90% |
+| 5 | 0.1576 | 0.0973 | 0.4263 | 0.3605 | 0.2275 | 30.04% |
+| 6 | 0.1374 | 0.0867 | 0.4505 | 0.3777 | 0.2361 | 30.04% |
+| 7 | 0.1225 | 0.0786 | 0.5108 | 0.4292 | 0.2790 | 25.97% |
+| 8 | 0.1111 | 0.0735 | 0.5228 | 0.4249 | 0.2833 | 24.46% |
+| 9 | 0.1020 | 0.0685 | 0.5335 | 0.4335 | 0.2876 | 24.89% |
+| 10 | 0.0956 | 0.0656 | 0.5809 | 0.4764 | 0.3133 | 17.38% |
+| 11 | 0.0899 | 0.0621 | 0.5696 | 0.4764 | 0.3133 | 20.60% |
+| 12 | 0.0854 | 0.0600 | 0.5864 | 0.4957 | 0.3262 | 20.60% |
+| 13 | 0.0827 | 0.0579 | 0.5992 | 0.4979 | 0.3283 | 17.81% |
+| 14 | 0.0803 | 0.0568 | 0.6004 | 0.5021 | 0.3433 | 17.38% |
+| 15 | 0.0784 | 0.0560 | 0.5884 | 0.4936 | 0.3391 | 18.45% |
+| 16 | 0.0779 | 0.0548 | 0.6176 | 0.5215 | 0.3498 | 16.95% |
+| 17 | 0.0762 | 0.0547 | 0.6117 | 0.5193 | 0.3519 | 17.17% |
+| 18 | 0.0762 | 0.0547 | 0.6126 | 0.5172 | 0.3519 | 17.17% |
+| 19 | 0.0760 | 0.0547 | 0.6126 | 0.5172 | 0.3519 | 16.95% |
+
+With the cosine schedule the learning rate is nearly 0 by epochs 17–19, so the model stops changing (same dev loss and SQL EM). At lr 1e-4, 20 epochs isn't enough for t5-small on this task: dev loss is 0.055, against 0.026 for lr 3e-4.
+
+#### Learning-rate summary (clean re-score of each best checkpoint's dev predictions)
+
+| lr | Epochs run | Best epoch | Dev loss at best | Record F1 | Record EM | SQL EM |
+|---|---|---|---|---|---|---|
+| 1e-4 | 20 | 16 | 0.0548 | 61.76 | 52.15 | 34.98 |
+| **3e-4** | 18 | 12 | 0.0263 | **79.61** | **75.54** | 59.87 |
+| 1e-3 | 13 | 7 | 0.0209 | 77.93 | 75.97 | 63.52 |
 
 ### Observations
 
 - **Record F1 per epoch is noisy, and the noise follows the SQL error rate.** SQL EM and dev loss improve almost steadily, but F1 jumps around (lr 3e-4: 0.7785 → 0.6866 → 0.7804 at epochs 14–16, with the error rate going 10% → 24% → 12%). Much of the error rate is `Query timed out`: `compute_records` gives the whole set of 466 queries a single 120 s budget (`as_completed(timeout=120)`), and every query not done by then is marked timed out with empty records. Two training runs and a BERT job were sharing CPU and GPU, so how many queries got through depended on load. Example: lr 1e-3 had 36 timeouts in its final dev eval, and lr 3e-4 had 11. When re-run alone, the lr 3e-4 test SQL gave 0 timeouts. The slowest queries are usually malformed ones (for example missing join conditions, which create huge cross products).
 - lr 1e-3 reaches higher **SQL EM** (71% at epoch 12) but more of its queries fail or time out, so its Record F1 is lower. lr 3e-4 produces fewer broken queries.
-- Because F1 is noisy, early stopping and checkpoint choice partly depend on load. **TODO:** re-score the saved dev predictions with nothing else running for clean final numbers.
+- Because F1 is noisy, early stopping and checkpoint choice partly depend on load. In the clean re-score, lr 1e-3 goes from 72.71 to 77.93 F1 with no change to its SQL, which shows how much of the gap was timeouts and not model quality.
+- Learning rate: 1e-4 is too slow for 20 epochs (61.76 F1). 1e-3 learns fastest (best epoch 7, highest SQL EM 63.52) but produces more broken or slow queries. 3e-4 has the best Record F1 and the lowest error rate.
+- Practical issue: a query that times out keeps running in its worker thread (`future.cancel()` can't stop a running SQLite call), so the training process can hang at exit. The lr 1e-4 run had to be killed by hand 12 minutes after writing its last file.
 
 ### Table 5: error analysis (dev set, lr 3e-4 best checkpoint)
 
@@ -287,6 +330,6 @@ The lr 3e-4 run was killed while it was computing the test records, because the 
 | Q1 | `part1/out_original.txt` | Done |
 | Q2 | `part1/out_transformed.txt` | Done |
 | Q3 | `part1/out_augmented_original.txt`, `part1/out_augmented_transformed.txt` | Done |
-| Q7 | `part2/results/t5_ft_experiment_test.sql`, `part2/records/t5_ft_experiment_test.pkl` | Done (lr 3e-4) |
+| Q7 | `part2/results/t5_ft_experiment_test.sql`, `part2/records/t5_ft_experiment_test.pkl` | Done (lr 3e-4, final) |
 | Model checkpoint on Google Drive | `part2/checkpoints/ft_experiments/lr3e-4/best/` | Needs uploading by you |
 | GitHub link | this repo | |
