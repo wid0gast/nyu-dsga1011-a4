@@ -1,7 +1,7 @@
 # A4 results log
 
 Raw results, settings and observations from running the assignment code, collected for the writeup.
-Numbers are copied from the run logs (`part1/logs/`, `part2/logs/`). All required runs are finished; the optional extra-credit run is in progress. The only required number still missing is the test score from the Gradescope leaderboard.
+Numbers are copied from the run logs (`part1/logs/`, `part2/logs/`). All required runs are finished; the optional extra-credit run (T5 from scratch) is finished too. The only required number still missing is the test score from the Gradescope leaderboard.
 
 _Last updated: 2026-11-16 04:50 UTC_
 
@@ -16,7 +16,7 @@ _Last updated: 2026-11-16 04:50 UTC_
 | Q5/Q6 T5 runs, lr 1e-3 and 3e-4 | Done |
 | Q6 T5 run, lr 1e-4 | Done |
 | Q7 test files | Done (lr 3e-4, final) |
-| Extra credit (T5 from scratch) | **Running** (attempt 3, started 05:37 UTC: lr 3e-4, 50 epochs, early stopping off); live per-epoch table in `part2/analysis/scratch_progress.md` (auto-pushed every 10 min) |
+| Extra credit (T5 from scratch) | **Done**: dev Record F1 **67.73** (best epoch 43 of 50); test files `part2/results/t5_ft_experiment_ec_test.sql`, `part2/records/t5_ft_experiment_ec_test.pkl` |
 
 ## Environment
 
@@ -323,7 +323,7 @@ The lr 3e-4 run was killed while it was computing the test records, because the 
 
 ---
 
-## Extra credit: T5-small from scratch (in progress)
+## Extra credit: T5-small from scratch
 
 Same code, run without `--finetune`: `initialize_model` builds `T5ForConditionalGeneration(T5Config.from_pretrained('google-t5/t5-small'))`, so the architecture is identical but every weight is random. Same tokenizer and data processing as the fine-tuned model.
 
@@ -331,9 +331,60 @@ Same code, run without `--finetune`: `initialize_model` builds `T5ForConditional
 |---|---|---|
 | 1 | lr 1e-3, 80 epochs, patience 10, 2 warmup epochs | Stopped by hand after 2 epochs: with the GPU shared with two other jobs (~4–5 min/epoch), 80 epochs would not finish before the Slurm job ends. Log: `part2/logs/aborted/scr_ec_80ep_aborted.log` |
 | 2 | lr 1e-3, 50 epochs, patience 10, 2 warmup epochs | **Diverged.** Train loss went 2.38 → 0.61 (epoch 1), then *rose* to 1.0–1.5 once warmup reached the 1e-3 peak (epochs 2–10). Dev loss 0.61 → 1.05–1.37. 100% of dev outputs were invalid SQL (degenerate repetition such as `date_day_day_day_…`), Record F1 stuck at 11.80 (the floor from gold queries with empty results). Early stopping ended it after epoch 10 because F1 never improved. Log: `part2/logs/aborted/scr_ec_lr1e-3_diverged.log` |
-| 3 | lr 3e-4, 50 epochs, patience 50 (effectively off), 2 warmup epochs, cosine | **Running** |
+| 3 (final) | lr 3e-4, 50 epochs, patience 50 (effectively off), 2 warmup epochs, cosine, bs 16 | **Converged.** Best dev Record F1 67.73 at epoch 43. Log: `part2/logs/scr_ec.log` |
 
 Lessons so far: (1) without pretrained weights and without gradient clipping, 1e-3 is unstable for t5-small; (2) F1-based early stopping is a bad fit from scratch, because F1 stays at the floor until the model starts producing valid SQL, so patience must be long or off.
+
+### Final run (attempt 3)
+
+Command: `python train_t5.py --learning_rate 3e-4 --max_n_epochs 50 --patience_epochs 50 --num_warmup_epochs 2 --scheduler_type cosine --batch_size 16 --test_batch_size 32 --experiment_name ec` (05:37–09:56 UTC, ~4.5 min/epoch on the shared GPU). Same data processing as the fine-tuned model (`<` → `LESS`, BOS 32099, greedy decoding, max 512 new tokens).
+
+Dev curve (every 5 epochs; full table in `part2/analysis/scratch_progress.md`):
+
+| Epoch | Dev loss | Record F1 | Record EM | SQL EM |
+|---|---|---|---|---|
+| 0 | 0.9310 | 11.80 | 11.80 | 0.00 |
+| 5 | 0.1209 | 24.84 | 20.82 | 8.80 |
+| 10 | 0.0690 | 34.00 | 29.40 | 19.53 |
+| 15 | 0.0569 | 38.54 | 35.19 | 25.11 |
+| 20 | 0.0518 | 40.85 | 38.84 | 25.11 |
+| 25 | 0.0363 | 54.14 | 49.79 | 37.98 |
+| 30 | 0.0313 | 61.36 | 57.30 | 44.64 |
+| 35 | 0.0286 | 64.10 | 61.16 | 49.36 |
+| 40 | 0.0285 | 66.30 | 63.30 | 50.43 |
+| **43 (best)** | **0.0282** | **67.73** | **64.59** | **51.29** |
+| 49 (last) | 0.0285 | 67.20 | 63.95 | 51.72 |
+
+Final train loss (epoch 49): 0.0061.
+
+Clean dev re-score of the best checkpoint's outputs (fresh process, `part2/analysis/rescore_ec.py`): F1 **67.73**, Record EM 64.59, SQL EM 51.29, 21 execution errors (4.51%), 0 timeouts, the same as the training log.
+
+Comparison with the fine-tuned model (dev, clean re-scores):
+
+| Model | Record F1 | Record EM | SQL EM | Exec errors |
+|---|---|---|---|---|
+| T5-small fine-tuned (lr 3e-4, best epoch 12) | 79.61 | 75.54 | 59.87 | 51 (40 SQL errors + 11 timeouts) |
+| T5-small from scratch (lr 3e-4, best epoch 43) | 67.73 | 64.59 | 51.29 | 21 |
+
+Error analysis (`part2/analysis/errors_scr_ec.md`, script `part2/analysis/error_analysis_scr.py`; categories overlap, counts out of 466):
+
+| Category | Fine-tuned lr 3e-4 | From scratch |
+|---|---|---|
+| Record-correct | 344 | 301 |
+| SQL exact match | 279 | 239 |
+| Execution error | 51 | 21 |
+| Wrong records (valid SQL) | 78 | 151 |
+| Wrong literal | 66 | 75 |
+| Fewer conditions | 26 | 24 |
+| More conditions | 12 | 22 |
+| Wrong SELECT | 17 | 19 |
+| Wrong tables | 30 | 39 |
+
+Observations:
+- From scratch needs about 4× as many epochs: F1 stays at the 11.80 floor for 2 epochs, is still only ~41 at epoch 20, and jumps 41 → 54 between epochs 20 and 25 once the model learns the join templates. The fine-tuned model got past 75 within ~10 epochs.
+- The scratch model makes **fewer** execution errors (21 vs 51) but many more valid-yet-wrong queries (151 vs 78). It learned the SQL syntax templates well from 4,225 examples, but understands the NL less well: it adds spurious joins and conditions (e.g. "i'm starting from denver" also gets a `to_airport = 'DENVER'` clause; "flights into atlanta's airport" becomes `airport_code = 'ATLANTA'`). Pretraining mainly helps map the question's meaning onto the correct conditions and literals.
+- Dev loss flattens from epoch ~35 (0.0286 → 0.0282) while train loss keeps falling to 0.006, so more epochs would add little; the cosine schedule had decayed to ~0 by the end anyway.
+- Test: 432 predictions, 20 execution errors (4.6%). Test F1 is shown only on Gradescope.
 
 ## Submission checklist
 
@@ -343,5 +394,6 @@ Lessons so far: (1) without pretrained weights and without gradient clipping, 1e
 | Q2 | `part1/out_transformed.txt` | Done |
 | Q3 | `part1/out_augmented_original.txt`, `part1/out_augmented_transformed.txt` | Done |
 | Q7 | `part2/results/t5_ft_experiment_test.sql`, `part2/records/t5_ft_experiment_test.pkl` | Done (lr 3e-4, final) |
+| Extra credit | `part2/results/t5_ft_experiment_ec_test.sql`, `part2/records/t5_ft_experiment_ec_test.pkl` | Done (from scratch, dev F1 67.73) |
 | Model checkpoint on Google Drive | `part2/checkpoints/ft_experiments/lr3e-4/best/` | Needs uploading by you |
 | GitHub link | this repo | |
