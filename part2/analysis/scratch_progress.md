@@ -1,6 +1,6 @@
 # Extra credit: T5-small from scratch (live progress)
 
-_Auto-generated from `part2/logs/scr_ec.log` at 2026-11-16 05:45 UTC_
+_Auto-generated from `part2/logs/scr_ec.log` at 2026-11-16 05:55 UTC_
 
 Command: `python train_t5.py --learning_rate 3e-4 --max_n_epochs 50 --patience_epochs 50 --num_warmup_epochs 2 --scheduler_type cosine --batch_size 16 --test_batch_size 32 --experiment_name ec` (no `--finetune` = random init from the t5-small config)
 
@@ -9,5 +9,7 @@ Command: `python train_t5.py --learning_rate 3e-4 --max_n_epochs 50 --patience_e
 | 0 | 3.2016 | 0.9310 | 0.1180 | 0.1180 | 0.0000 | 100.00% |
 | 1 | 0.6921 | 0.4213 | 0.1180 | 0.1180 | 0.0000 | 100.00% |
 | 2 | 0.3704 | 0.2587 | 0.1476 | 0.1352 | 0.0300 | 31.55% |
+| 3 | 0.2535 | 0.2102 | 0.1300 | 0.1180 | 0.0107 | 48.28% |
+| 4 | 0.2048 | 0.1401 | 0.1814 | 0.1631 | 0.0644 | 27.90% |
 
-Best so far: epoch 2, Record F1 0.1476
+Best so far: epoch 4, Record F1 0.1814
