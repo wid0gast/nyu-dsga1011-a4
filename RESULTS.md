@@ -3,7 +3,7 @@
 Raw results, settings and observations from running the assignment code, collected for the writeup.
 Numbers are copied from the run logs (`part1/logs/`, `part2/logs/`). Items marked **PENDING** are still running.
 
-_Last updated: 2026-11-16 02:30 UTC_
+_Last updated: 2026-11-16 03:40 UTC_
 
 ## Status
 
@@ -11,7 +11,7 @@ _Last updated: 2026-11-16 02:30 UTC_
 |---|---|
 | Q1 BERT debug + full training | Done |
 | Q2 transformed eval | Done (with the stronger v2 transformation) |
-| Q3 augmented training + 2 evals | **PENDING** (training started 02:20 UTC) |
+| Q3 augmented training + 2 evals | Done |
 | Q4 data statistics | Done |
 | Q5/Q6 T5 runs, lr 1e-3 and 3e-4 | Done |
 | Q6 T5 run, lr 1e-4 | **PENDING** |
@@ -94,14 +94,31 @@ Command: `python3 main.py --eval_transformed` (uses the Q1 model in `./out`).
 | Model | Original test | Transformed test |
 |---|---|---|
 | Q1 model (original data only) | 92.864% | 87.888% |
-| Augmented model (`out_augmented`) | **PENDING** | **PENDING** |
+| **Augmented model (`out_augmented`)** | **92.788%** (−0.08) | **88.988%** (+1.10) |
 
-Commands:
-- `python3 main.py --train_augmented --eval_transformed`
-- `python3 main.py --eval --model_dir out_augmented` → `out_augmented_original.txt`
-- `python3 main.py --eval_transformed --model_dir out_augmented` → `out_augmented_transformed.txt`
+- Transformed-test accuracy rose 1.10 points, which recovers about 22% of the 4.98-point drop. It is still 3.8 points below the model's accuracy on clean text.
+- Original-test accuracy is basically unchanged (−0.08 points, 19 fewer correct out of 25,000), so within run-to-run noise.
 
-Note: the first Q3 attempt crashed with CUDA out-of-memory on step 1 because two T5 runs were using 35 GB of the GPU at the same time. It is being rerun.
+Commands, run in this order:
+1. `python3 main.py --train_augmented --eval_transformed` (training took about 43 min) → transformed accuracy **89.152%**. This run transforms the 5,000 augmentation examples first, which uses up random numbers, so its transformed test set is a different random draw from the standalone eval below.
+2. `python3 main.py --eval --model_dir out_augmented` → `out_augmented_original.txt`, **92.788%**
+3. `python3 main.py --eval_transformed --model_dir out_augmented` → `out_augmented_transformed.txt`, **88.988%** (the submitted file). This is the same command and seed as the Q2 eval, so the transformed test set should be the same one as in Q2.
+
+Per-example changes (Q1/Q2 model → augmented model, from the output files):
+
+| Test set | Wrong → right | Right → wrong | Net |
+|---|---|---|---|
+| Transformed | 1,307 | 1,032 | +275 |
+| Original | 615 | 634 | −19 |
+
+So augmentation reshuffles a lot of individual predictions: about 2,300 flips on the transformed set and about 1,250 on the original set. The net effect is a small gain on transformed text.
+
+Raw facts for the "intuition" and "limitation" answers:
+- Only 5,000 of the 30,000 training examples (16.7%) are transformed, and each is seen 3 times over 3 epochs.
+- The transformed training examples come from the same transformation function (same probabilities) as the test-time transformation. So this tests robustness to a *known* shift, not to unknown out-of-distribution shifts.
+- Each typo is random, so a word misspelled one way in training is usually misspelled differently at test time. BERT's WordPiece tokenizer splits misspelled words into different subword pieces each time.
+
+Note: the first Q3 attempt crashed with CUDA out-of-memory on step 1 because two T5 runs were using 35 GB of the GPU at the same time. It was rerun from 02:20 to 03:35 UTC, sharing the GPU only with the T5 lr 1e-4 run.
 
 ---
 
@@ -269,7 +286,7 @@ The lr 3e-4 run was killed while it was computing the test records, because the 
 |---|---|---|
 | Q1 | `part1/out_original.txt` | Done |
 | Q2 | `part1/out_transformed.txt` | Done |
-| Q3 | `part1/out_augmented_original.txt`, `part1/out_augmented_transformed.txt` | PENDING |
+| Q3 | `part1/out_augmented_original.txt`, `part1/out_augmented_transformed.txt` | Done |
 | Q7 | `part2/results/t5_ft_experiment_test.sql`, `part2/records/t5_ft_experiment_test.pkl` | Done (lr 3e-4) |
 | Model checkpoint on Google Drive | `part2/checkpoints/ft_experiments/lr3e-4/best/` | Needs uploading by you |
 | GitHub link | this repo | |
