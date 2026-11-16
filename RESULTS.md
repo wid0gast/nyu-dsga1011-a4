@@ -1,7 +1,7 @@
 # A4 results log
 
 Raw results, settings and observations from running the assignment code, collected for the writeup.
-Numbers are copied from the run logs (`part1/logs/`, `part2/logs/`). All runs are finished. The only number still missing is the test score from the Gradescope leaderboard.
+Numbers are copied from the run logs (`part1/logs/`, `part2/logs/`). All required runs are finished; the optional extra-credit run is in progress. The only required number still missing is the test score from the Gradescope leaderboard.
 
 _Last updated: 2026-11-16 04:50 UTC_
 
@@ -16,7 +16,7 @@ _Last updated: 2026-11-16 04:50 UTC_
 | Q5/Q6 T5 runs, lr 1e-3 and 3e-4 | Done |
 | Q6 T5 run, lr 1e-4 | Done |
 | Q7 test files | Done (lr 3e-4, final) |
-| Extra credit (T5 from scratch) | Not run |
+| Extra credit (T5 from scratch) | **Running** since 04:55 UTC; live per-epoch table in `part2/analysis/scratch_progress.md` (auto-pushed every 10 min) |
 
 ## Environment
 
