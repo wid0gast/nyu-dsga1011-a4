@@ -20,3 +20,4 @@ logs/
 part1/out/
 part1/out_augmented/
 part2/checkpoints/
+env.sh

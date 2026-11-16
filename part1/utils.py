@@ -27,8 +27,8 @@ def example_transform(example):
 # For typos, you can try to simulate nearest keys on the QWERTY keyboard for some of the letter (e.g. vowels)
 # You can randomly select each word with some fixed probability, and replace random letters in that word with one of the
 # nearest keys on the keyboard. You can vary the random probablity or which letters to use to achieve the desired accuracy.
-P_SYNONYM = 0.15
-P_TYPO = 0.15
+P_SYNONYM = 0.25
+P_TYPO = 0.25
 P_CAPS = 0.05
 
 KEYBOARD_NEIGHBORS = {
