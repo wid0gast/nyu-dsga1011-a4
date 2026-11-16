@@ -395,5 +395,5 @@ Observations:
 | Q3 | `part1/out_augmented_original.txt`, `part1/out_augmented_transformed.txt` | Done |
 | Q7 | `part2/results/t5_ft_experiment_test.sql`, `part2/records/t5_ft_experiment_test.pkl` | Done (lr 3e-4, final) |
 | Extra credit | `part2/results/t5_ft_experiment_ec_test.sql`, `part2/records/t5_ft_experiment_ec_test.pkl` | Done (from scratch, dev F1 67.73) |
-| Model checkpoint on Google Drive | `part2/checkpoints/ft_experiments/lr3e-4/best/` | Needs uploading by you |
+| Model checkpoint on Google Drive | `part2/checkpoints/ft_experiments/lr3e-4/best/` (plus `part2/checkpoints/scr_experiments/ec/best/` for extra credit) | Needs uploading by you |
 | GitHub link | this repo | |
