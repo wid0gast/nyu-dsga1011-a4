@@ -16,7 +16,7 @@ _Last updated: 2026-11-16 04:50 UTC_
 | Q5/Q6 T5 runs, lr 1e-3 and 3e-4 | Done |
 | Q6 T5 run, lr 1e-4 | Done |
 | Q7 test files | Done (lr 3e-4, final) |
-| Extra credit (T5 from scratch) | **Running** since 04:55 UTC; live per-epoch table in `part2/analysis/scratch_progress.md` (auto-pushed every 10 min) |
+| Extra credit (T5 from scratch) | **Running** (restarted 05:00 UTC with 50 max epochs, because the GPU is shared with two other jobs and 80 would not finish before the Slurm job ends at ~10:17); live per-epoch table in `part2/analysis/scratch_progress.md` (auto-pushed every 10 min) |
 
 ## Environment
 
